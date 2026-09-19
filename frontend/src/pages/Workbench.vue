@@ -12,8 +12,6 @@ const result = ref(null)
 const summary = ref(null)
 const errorMsg = ref('')
 
-const fmtTime = (iso) => new Date(iso).toLocaleString()
-
 const resetForm = () => {
   kwh.value = null
   peak.value = false
@@ -85,7 +83,7 @@ onMounted(async () => {
     <div v-if="accountId" class="panel summary">
       <template v-if="summary">
         <p>
-          上次成功时间：{{ fmtTime(summary.success_at) }}
+          上次成功时间：{{ summary.success_at }}
           <span class="muted">运行 #{{ summary.run_id }}</span>
         </p>
         <p class="muted">上次合计 ¥{{ summary.total }}（电量 {{ summary.kwh }} kWh · 尖峰 {{ summary.peak ? '开' : '关' }}），已按此回填表单</p>

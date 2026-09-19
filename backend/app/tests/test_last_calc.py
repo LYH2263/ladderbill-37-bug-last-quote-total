@@ -24,6 +24,18 @@ def test_successful_bill_persists_summary(svc):
     assert summary["success_at"]
 
 
+def test_summary_total_matches_history_run(svc):
+    import json
+
+    out = svc.run_bill(400, True, account_id=1, persist=True)
+    summary = svc.get_last_calc(1)
+    history_run = svc.get_run(out["run_id"])
+    history_total = json.loads(history_run["result_json"])["total"]
+    # 卡片合计/时间必须与历史页该编号的记录一致，而不是输入电量
+    assert summary["total"] == history_total == out["total"]
+    assert summary["success_at"] == history_run["created_at"]
+
+
 def test_latest_success_overwrites_previous(svc):
     svc.run_bill(120, False, account_id=1, persist=True)
     second = svc.run_bill(400, True, account_id=1, persist=True)

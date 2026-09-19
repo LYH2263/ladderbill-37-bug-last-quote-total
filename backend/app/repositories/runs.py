@@ -39,11 +39,10 @@ def echo_fields(conn: sqlite3.Connection, run_id: int) -> dict:
     row = get(conn, run_id)
     payload = json.loads(row["input_json"])
     result = json.loads(row["result_json"])
-    kwh = float(result["kwh"])
     return {
-        "kwh": kwh,
+        "kwh": float(result["kwh"]),
         "peak": bool(payload.get("peak")),
-        "total": float(payload["kwh"]),
+        "total": float(result["total"]),
         "run_id": int(row["id"]),
         "success_at": row["created_at"],
     }
