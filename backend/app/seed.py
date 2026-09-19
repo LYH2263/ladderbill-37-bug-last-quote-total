@@ -59,4 +59,33 @@ def init_db():
             ("compare", 2, json.dumps({"kwh": 400}), json.dumps(cmp2, ensure_ascii=False)),
         )
         conn.commit()
+    _repair_last_calc_totals(conn)
     conn.close()
+
+
+def _repair_last_calc_totals(conn):
+    """Backfill account_last_calc.total from the authoritative calc_runs row.
+
+    Earlier builds stored the input kwh in the total column by mistake, so the
+    summary card's amount did not match the run shown in history. Re-derive
+    every stored total (and timestamp) from the referenced run.
+    """
+    rows = conn.execute(
+        """
+        SELECT lc.account_id, lc.run_id,
+               r.result_json, r.created_at
+        FROM account_last_calc lc
+        JOIN calc_runs r ON r.id = lc.run_id
+        """
+    ).fetchall()
+    for row in rows:
+        result = json.loads(row["result_json"])
+        total = result.get("total")
+        if total is None:
+            continue
+        # Always rewrite: also normalizes older ISO-format success_at values.
+        conn.execute(
+            "UPDATE account_last_calc SET total=?, success_at=? WHERE account_id=?",
+            (float(total), row["created_at"], row["account_id"]),
+        )
+    conn.commit()

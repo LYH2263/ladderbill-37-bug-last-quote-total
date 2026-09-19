@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from app import seed
@@ -19,9 +21,20 @@ def test_successful_bill_persists_summary(svc):
     assert summary is not None
     assert summary["kwh"] == 220
     assert summary["peak"] is False
-    assert isinstance(summary["total"], (int, float))
+    # Card amount must equal the amount stored on the run in history
+    assert summary["total"] == out["total"]
     assert summary["run_id"] == out["run_id"]
-    assert summary["success_at"]
+    run = svc.get_run(out["run_id"])
+    assert summary["total"] == json.loads(run["result_json"])["total"]
+    assert summary["success_at"] == run["created_at"]
+
+
+def test_summary_total_is_amount_not_kwh(svc):
+    out = svc.run_bill(400, True, account_id=1, persist=True)
+    summary = svc.get_last_calc(1)
+    assert summary["kwh"] == 400
+    assert summary["total"] == out["total"] == 309.6
+    assert summary["total"] != summary["kwh"]
 
 
 def test_latest_success_overwrites_previous(svc):
@@ -30,8 +43,27 @@ def test_latest_success_overwrites_previous(svc):
     summary = svc.get_last_calc(1)
     assert summary["kwh"] == 400
     assert summary["peak"] is True
-    assert isinstance(summary["total"], (int, float))
+    assert summary["total"] == second["total"]
     assert summary["run_id"] == second["run_id"]
+    run = svc.get_run(second["run_id"])
+    assert summary["success_at"] == run["created_at"]
+
+
+def test_repair_backfills_total_from_run(svc, tmp_path, monkeypatch):
+    out = svc.run_bill(400, True, account_id=1, persist=True)
+    # Simulate the old bug: total column holds the input kwh.
+    conn = connect()
+    conn.execute("UPDATE account_last_calc SET total=400 WHERE account_id=1")
+    conn.commit()
+    seed._repair_last_calc_totals(conn)
+    fixed = conn.execute(
+        "SELECT total, success_at FROM account_last_calc WHERE account_id=1"
+    ).fetchone()
+    conn.close()
+    assert fixed["total"] == out["total"]
+    run = svc.get_run(out["run_id"])
+    assert fixed["success_at"] == run["created_at"]
+
 
 
 def test_failed_calc_does_not_overwrite_summary(svc):

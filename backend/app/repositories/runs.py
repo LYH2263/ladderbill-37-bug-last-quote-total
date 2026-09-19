@@ -10,7 +10,9 @@ def insert(
     result: dict,
     account_id: int | None = None,
 ) -> int:
-    now = datetime.now(timezone.utc).isoformat()
+    # UTC in SQLite datetime format ('YYYY-MM-DD HH:MM:SS'), matching
+    # datetime('now') used in the seed; clients convert to local time.
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     cur = conn.execute(
         """
         INSERT INTO calc_runs(kind, account_id, input_json, result_json, created_at)
@@ -39,11 +41,10 @@ def echo_fields(conn: sqlite3.Connection, run_id: int) -> dict:
     row = get(conn, run_id)
     payload = json.loads(row["input_json"])
     result = json.loads(row["result_json"])
-    kwh = float(result["kwh"])
     return {
-        "kwh": kwh,
+        "kwh": float(payload["kwh"]),
         "peak": bool(payload.get("peak")),
-        "total": float(payload["kwh"]),
+        "total": float(result["total"]),
         "run_id": int(row["id"]),
         "success_at": row["created_at"],
     }

@@ -1,4 +1,3 @@
-import json
 import sqlite3
 
 from app.repositories import runs as runs_repo
@@ -14,11 +13,10 @@ def save(
     success_at: str | None = None,
 ) -> dict:
     """Persist the latest successful calc summary for an account (upsert)."""
-    row = runs_repo.get(conn, run_id)
-    payload = json.loads(row["input_json"])
     if not success_at:
+        row = runs_repo.get(conn, run_id)
         success_at = row["created_at"]
-    total = float(payload["kwh"])
+    total = float(total)
     conn.execute(
         """
         INSERT INTO account_last_calc(account_id, kwh, peak, total, run_id, success_at)

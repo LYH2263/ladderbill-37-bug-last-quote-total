@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { getJSON } from '../api'
+import { fmtTime } from '../utils/time'
 const items = ref([])
 onMounted(async () => { items.value = (await getJSON('/api/history')).items })
 const summary = (row) => {
@@ -15,7 +16,7 @@ const summary = (row) => {
       <tbody>
         <tr v-for="h in items" :key="h.id">
           <td>{{ h.id }}</td><td>{{ h.kind }}</td><td>{{ h.account_id ?? '—' }}</td>
-          <td>{{ summary(h) }}</td><td class="muted">{{ h.created_at }}</td>
+          <td>{{ summary(h) }}</td><td class="muted">{{ fmtTime(h.created_at) }}</td>
         </tr>
       </tbody>
     </table>

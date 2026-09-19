@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { deleteJSON, getJSON, postJSON } from '../api'
+import { fmtTime } from '../utils/time'
 import TierLadder from '../components/TierLadder.vue'
 import SegmentTable from '../components/SegmentTable.vue'
 
@@ -11,8 +12,6 @@ const peak = ref(false)
 const result = ref(null)
 const summary = ref(null)
 const errorMsg = ref('')
-
-const fmtTime = (iso) => new Date(iso).toLocaleString()
 
 const resetForm = () => {
   kwh.value = null
